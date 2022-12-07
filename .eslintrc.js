@@ -1,9 +1,6 @@
 module.exports = {
   extends: [
     'alloy',
-    'alloy/react',
-    'alloy/typescript',
-    'plugin:react-hooks/recommended',
     'plugin:prettier/recommended',
   ],
   globals: {

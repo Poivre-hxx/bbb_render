@@ -1,0 +1,14 @@
+# bbb_Render
+
+ bh3桌面端人物渲染
+
+├── bbb_Render
+│ ├── app
+│ │ ├── main      // 主进程模块
+│ │ │    ├── electron.js
+│ │ │    └── index.html
+│ │ ├── renderer  // 渲染进程模块
+│ │ └──
+│ ├── package.json
+│ └──
+└──

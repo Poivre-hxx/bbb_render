@@ -1,0 +1,95 @@
+#canvas {
+  width: 95vw;
+  height: 90vh;
+  background-color: #000;
+  border-radius: 10px;
+  margin-left: 2vw;
+  margin-right: 2vw;
+  margin-top: 0.5vh;
+}
+
+/* 玩家模式按钮 */
+.btnForm {
+  display: inline-block;
+  border-radius: 10px;
+  background-color: #f4511e;
+  border: none;
+  color: #ffffff;
+  text-align: center;
+  font-size: 15px;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 5px;
+  width: 10vw;
+  height: 5vh;
+  margin-right: 3vw;
+  vertical-align: middle;
+}
+
+.btnForm span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.btnForm span:after {
+  content: '»';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+.btnForm:hover span {
+  padding-right: 25px;
+}
+
+.btnForm:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+/* 控制灯效按钮 */
+.btnLight {
+  display: inline-block;
+  border-radius: 10px;
+  background-color: #f4511e;
+  border: none;
+  color: #ffffff;
+  text-align: center;
+  font-size: 15px;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 5px;
+  width: 10vw;
+  height: 5vh;
+  margin-right: 3vw;
+  vertical-align: middle;
+}
+
+.btnLight span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.btnLight span:after {
+  content: '»';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+.btnLight:hover span {
+  padding-right: 25px;
+}
+
+.btnLight:hover span:after {
+  opacity: 1;
+  right: 0;
+}

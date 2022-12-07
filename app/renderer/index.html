@@ -1,13 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <div>hello world!</div>
-    
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>bbb render</title>
+
+    <link type="text/css" rel="stylesheet" href="./style.css" />
+    <!-- <script src="script.js"></script> -->
+    <!-- <script id="vs" type="x-shader/x-vertex"></script>
+
+    <script id="fs" type="x-shader/x-fragment"></script> -->
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button class="btnLight" onClick="changeLight()">
+        <span id="spanLight">开灯</span>
+      </button>
+      <button class="btnForm" onClick="changeForm()">
+        <span id="spanForm">上帝视角</span>
+      </button>
+    </div>
+
+    <script src="./buttonClick.js"></script>
+  </body>
 </html>

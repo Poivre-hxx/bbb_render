@@ -7,15 +7,24 @@
     <title>bbb render</title>
 
     <link type="text/css" rel="stylesheet" href="./style.css" />
-    <!-- <script src="script.js"></script> -->
-    <!-- <script id="vs" type="x-shader/x-vertex"></script>
-
-    <script id="fs" type="x-shader/x-fragment"></script> -->
   </head>
-  <body>
-    <canvas id="canvas"></canvas>
+  <body onload="main()">
+    <div><input type="file" id="demFile" multiple="multiple" /></div>
+    <div
+      id="processing"
+      style="width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); position: fixed; display: flex"
+    >
+      <p
+        id="percentage"
+        style="display: flex; margin: auto; width: 200px; height: 100px; color: white; font-size: 24px"
+      >
+        加载中
+      </p>
+    </div>
 
-    <div style="display: flex; justify-content: flex-end;">
+    <canvas id="canvas"> Please use a browser that supports WebGL. </canvas>
+
+    <div style="display: flex; justify-content: flex-end">
       <button class="btnLight" onClick="changeLight()">
         <span id="spanLight">开灯</span>
       </button>
@@ -23,7 +32,14 @@
         <span id="spanForm">上帝视角</span>
       </button>
     </div>
-
+    <!-- 控制交互 -->
     <script src="./buttonClick.js"></script>
+
+    <!-- 轮子 -->
+    <script src="./lib/webgl-utils.js"></script>
+    <script src="./lib/webgl-debug.js"></script>
+    <script src="./lib/cuon-utils.js"></script>
+    <script src="./lib/cuon-matrix.js"></script>
+    <script src="./script.js"></script>
   </body>
 </html>

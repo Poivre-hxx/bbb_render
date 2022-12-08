@@ -1,6 +1,9 @@
+#demFile {
+  padding: 1vh 2vw;
+}
 #canvas {
   width: 95vw;
-  height: 90vh;
+  height: 85vh;
   background-color: #000;
   border-radius: 10px;
   margin-left: 2vw;

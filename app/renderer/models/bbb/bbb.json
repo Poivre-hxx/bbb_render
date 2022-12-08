@@ -1,0 +1,7 @@
+{
+    "Filelist" :[
+        {"name": "bbb.gltf", "path": "./models/bbb/bbb.gltf"},
+        {"name": "8.png", "path": "./models/bbb/8.png"},
+        {"name": "Avatar_Q_Kiana_C5_Texture_Color.png", "path": "./models/bbb/Avatar_Q_Kiana_C5_Texture_Color.png"}
+    ]
+}

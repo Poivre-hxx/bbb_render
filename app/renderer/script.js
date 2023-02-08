@@ -322,7 +322,6 @@ function setMVPMatrix(gl, canvas, cuboid) {
   gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
 }
 
-//
 function initVertexBuffers(gl, gltfObj, binBuf) {
   //获取顶点数据位置信息  
   var positionAccessorId = gltfObj.meshes[0].primitives[0].attributes.POSITION;

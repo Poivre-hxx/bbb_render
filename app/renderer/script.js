@@ -1,21 +1,28 @@
-// 顶点着色器程序
+// 顶点着色器程序a_Position
 var VSHADER_SOURCE =
-  'attribute vec4 a_Position;\n' + //位置
-  'attribute vec2 a_TexCoord;\n' + //颜色
-  'varying vec2 v_TexCoord;\n' + //纹理坐标
+  'attribute vec4 a_Position;\n' +
+  'attribute vec3 a_normal' +
+  'attribute vec2 a_TexCoord;\n' +
   'uniform mat4 u_MvpMatrix;\n' +
+  'uniform mat4 invMatrix;\n' +
+  'uniform mat3 lightDirection;\n' +
+  'varying vec2 v_TexCoord;\n' +
+  'varying float diffuse;\n' +
   'void main() {\n' +
+  '  vec3 invLight = normalize((invMatrix * lightDirection * vec4(0.0, 0.0, 1.0, 0.0)).xyz);\n' +
+  '  float diffuse = clamp(dot(a_normal.xyz, invLight), 0.1,);\n' +
   '  gl_Position = u_MvpMatrix * a_Position;\n' + // 设置顶点坐标
-  '  v_TexCoord = a_TexCoord;\n' +  //纹理坐标
+  '  v_TexCoord = a_TexCoord;\n' + //纹理坐标
   '}\n';
 
 // 片元着色器程序
 var FSHADER_SOURCE =
   'precision mediump float;\n' +
   'uniform sampler2D u_Sampler;\n' +
-  'varying vec2 v_TexCoord;\n' + //纹理坐标
+  'varying vec2 v_TexCoord;\n' +
+  'varying float diffuse;\n' +
   'void main() {\n' +
-  '  gl_FragColor = texture2D(u_Sampler, v_TexCoord);\n' +
+  '  gl_FragColor = texture2D(u_Sampler, v_TexCoord) * vec4(vec3(diffuse), 1.0);\n' +
   '}\n';
 
 //定义一个矩形体：混合构造函数原型模式
@@ -40,19 +47,19 @@ Cuboid.prototype = {
     return (this.minZ + this.maxZ) / 2.0;
   },
   LengthX: function () {
-    return (this.maxX - this.minX);
+    return this.maxX - this.minX;
   },
   LengthY: function () {
-    return (this.maxY - this.minY);
-  }
-}
+    return this.maxY - this.minY;
+  },
+};
 
 var currentAngle = [0.0, 0.0]; // 绕X轴Y轴的旋转角度 ([x-axis, y-axis])
 var curScale = 1.0; //当前的缩放比例
 
 //获取文件路径的后缀，为小写
 function getFileSuffix(filePath) {
-  var index = filePath.lastIndexOf(".");
+  var index = filePath.lastIndexOf('.');
   var suffix = filePath.substr(index + 1);
   return suffix.toLowerCase();
 }
@@ -60,15 +67,15 @@ function getFileSuffix(filePath) {
 function main() {
   var demFile = document.getElementById('demFile');
   if (!demFile) {
-    console.log("Failed to get demFile element!");
+    console.log('Failed to get demFile element!');
     return;
   }
 
   //加载文件后的事件
-  demFile.addEventListener("change", function (event) {
+  demFile.addEventListener('change', function (event) {
     //判断浏览器是否支持FileReader接口
     if (typeof FileReader == 'undefined') {
-      console.log("你的浏览器不支持FileReader接口！");
+      console.log('你的浏览器不支持FileReader接口！');
       return;
     }
 
@@ -86,7 +93,7 @@ function main() {
               if (binReader.result) {
                 for (var fi = 0; fi < input.files.length; fi++) {
                   if (gltfObj.images[0].uri === input.files[fi].name) {
-                    //读取纹理图像   
+                    //读取纹理图像
                     var imgReader = new FileReader();
 
                     imgReader.onload = function () {
@@ -97,7 +104,7 @@ function main() {
                         return false;
                       }
 
-                      //图像加载的响应函数 
+                      //图像加载的响应函数
                       image.onload = function () {
                         //绘制函数
                         onDraw(gl, canvas, gltfObj, binReader.result, image);
@@ -105,34 +112,34 @@ function main() {
 
                       //浏览器开始加载图像
                       image.src = imgReader.result;
-                    }
+                    };
 
                     imgReader.readAsDataURL(input.files[fi]); //按照base64格式读取
                     break;
                   }
                 }
               }
-            }
-            binReader.readAsArrayBuffer(input.files[fi]);    //按照ArrayBuffer格式读取
+            };
+            binReader.readAsArrayBuffer(input.files[fi]); //按照ArrayBuffer格式读取
             break;
           }
         }
       }
-    }
+    };
 
     var input = event.target;
 
     var flag = false;
     for (var fi = 0; fi < input.files.length; fi++) {
-      if (getFileSuffix(input.files[fi].name) === "gltf") {
+      if (getFileSuffix(input.files[fi].name) === 'gltf') {
         flag = true;
-        reader.readAsText(input.files[fi]);      //按照字符串格式读取
+        reader.readAsText(input.files[fi]); //按照字符串格式读取
         break;
       }
     }
 
     if (!flag) {
-      alert("没有找到gltf");
+      alert('没有找到gltf');
     }
   });
 
@@ -164,7 +171,7 @@ function main() {
 
 //绘制函数
 function onDraw(gl, canvas, gltfObj, binBuf, image) {
-  // 设置顶点位置 
+  // 设置顶点位置
   var n = initVertexBuffers(gl, gltfObj, binBuf);
   if (n < 0) {
     console.log('Failed to set the positions of the vertices');
@@ -183,6 +190,8 @@ function onDraw(gl, canvas, gltfObj, binBuf, image) {
   var tick = function () {
     //设置MVP矩阵
     setMVPMatrix(gl, canvas, gltfObj.cuboid);
+
+    var lightDirection = [-0.5, 0.5, 0.5];
 
     //清空颜色和深度缓冲区
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -220,7 +229,7 @@ function loadTexture(gl, image) {
   // 配置纹理图像
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
-  // 将0号单元纹理传递给着色器中的取样器变量 
+  // 将0号单元纹理传递给着色器中的取样器变量
   var u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
   if (!u_Sampler) {
     console.log('Failed to get the storage location of u_Sampler');
@@ -271,7 +280,7 @@ function initEventHandlers(canvas) {
       currentAngle[0] = currentAngle[0] + dy;
       currentAngle[1] = currentAngle[1] + dx;
     }
-    lastX = x, lastY = y;
+    (lastX = x), (lastY = y);
   };
 
   //鼠标缩放
@@ -286,18 +295,21 @@ function initEventHandlers(canvas) {
 
 //设置MVP矩阵
 function setMVPMatrix(gl, canvas, cuboid) {
-  // Get the storage location of u_MvpMatrix
-  var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
-  if (!u_MvpMatrix) {
-    console.log('Failed to get the storage location of u_MvpMatrix');
-    return;
-  }
+  // var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
+  // if (!u_MvpMatrix) {
+  //   console.log('Failed to get the storage location of u_MvpMatrix');
+  //   return;
+  // }
+  var attLocation = new Array();
+  attLocation[0] = gl.getAttribLocation(gl.program, 'a_position');
+  attLocation[1] = gl.getAttribLocation(gl.program, 'a_normal');
+  attLocation[2] = gl.getAttribLocation(gl.program, 'a_color');
 
   //模型矩阵
   var modelMatrix = new Matrix4();
   modelMatrix.scale(curScale, curScale, curScale);
-  modelMatrix.rotate(currentAngle[0], 1.0, 0.0, 0.0); // Rotation around x-axis 
-  modelMatrix.rotate(currentAngle[1], 0.0, 1.0, 0.0); // Rotation around y-axis 
+  modelMatrix.rotate(currentAngle[0], 1.0, 0.0, 0.0); // Rotation around x-axis
+  modelMatrix.rotate(currentAngle[1], 0.0, 1.0, 0.0); // Rotation around y-axis
   modelMatrix.translate(-cuboid.CenterX(), -cuboid.CenterY(), -cuboid.CenterZ());
 
   //投影矩阵
@@ -306,34 +318,49 @@ function setMVPMatrix(gl, canvas, cuboid) {
   var projMatrix = new Matrix4();
   projMatrix.setPerspective(fovy, canvas.width / canvas.height, 1, 10000);
 
-  //计算lookAt()函数初始视点的高度
-  var angle = fovy / 2 * Math.PI / 180.0;
+  // 计算lookAt()函数初始视点的高度
+  var angle = ((fovy / 2) * Math.PI) / 180.0;
   var eyeHight = (cuboid.LengthY() * 1.2) / 2.0 / angle;
 
-  //视图矩阵  
-  var viewMatrix = new Matrix4(); // View matrix   
+  // 视图矩阵
+  var viewMatrix = new Matrix4(); // View matrix
   viewMatrix.lookAt(0, 0, eyeHight, 0, 0, 0, 0, 1, 0);
 
-  //MVP矩阵
+  // MVP矩阵
   var mvpMatrix = new Matrix4();
   mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
+  // invMatrix矩阵
+  var invMatrix = new Matrix4();
+  invMatrix.setInverseOf(modelMatrix);
 
-  //将MVP矩阵传输到着色器的uniform变量u_MvpMatrix
-  gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+  // 将MVP矩阵传输到着色器的uniform变量u_MvpMatrix
+  // gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+  var uniLocation = new Array();
+  uniLocation[0] = gl.getUniformLocation(gl.program, 'mvpMatrix');
+  uniLocation[1] = gl.getUniformLocation(gl.program, 'invMatrix');
+  uniLocation[2] = gl.getUniformLocation(gl.program, 'lightDirection');
 }
 
 function initVertexBuffers(gl, gltfObj, binBuf) {
-  //获取顶点数据位置信息  
+  // 获取顶点数据位置信息
   var positionAccessorId = gltfObj.meshes[0].primitives[0].attributes.POSITION;
   if (gltfObj.accessors[positionAccessorId].componentType != 5126) {
     return 0;
   }
-
   var positionBufferViewId = gltfObj.accessors[positionAccessorId].bufferView;
-  var verticesColors = new Float32Array(binBuf, gltfObj.bufferViews[positionBufferViewId].byteOffset, gltfObj.bufferViews[positionBufferViewId].byteLength / Float32Array.BYTES_PER_ELEMENT);
-
-  gltfObj.cuboid = new Cuboid(gltfObj.accessors[positionAccessorId].min[0], gltfObj.accessors[positionAccessorId].max[0], gltfObj.accessors[positionAccessorId].min[1], gltfObj.accessors[positionAccessorId].max[1], gltfObj.accessors[positionAccessorId].min[2], gltfObj.accessors[positionAccessorId].max[2]);
-
+  var verticesColors = new Float32Array(
+    binBuf,
+    gltfObj.bufferViews[positionBufferViewId].byteOffset,
+    gltfObj.bufferViews[positionBufferViewId].byteLength / Float32Array.BYTES_PER_ELEMENT
+  );
+  gltfObj.cuboid = new Cuboid(
+    gltfObj.accessors[positionAccessorId].min[0],
+    gltfObj.accessors[positionAccessorId].max[0],
+    gltfObj.accessors[positionAccessorId].min[1],
+    gltfObj.accessors[positionAccessorId].max[1],
+    gltfObj.accessors[positionAccessorId].min[2],
+    gltfObj.accessors[positionAccessorId].max[2]
+  );
   // 创建缓冲区对象
   var vertexColorBuffer = gl.createBuffer();
   var indexBuffer = gl.createBuffer();
@@ -341,55 +368,105 @@ function initVertexBuffers(gl, gltfObj, binBuf) {
     console.log('Failed to create the buffer object');
     return -1;
   }
-
   // 将缓冲区对象绑定到目标
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
   // 向缓冲区对象写入数据
   gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
-
-  //获取着色器中attribute变量a_Position的地址 
+  //获取着色器中attribute变量a_Position的地址
   var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   if (a_Position < 0) {
     console.log('Failed to get the storage location of a_Position');
     return -1;
   }
-
-  // 将缓冲区对象分配给a_Position变量  
-  gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, gltfObj.bufferViews[positionBufferViewId].byteStride, gltfObj.accessors[positionAccessorId].byteOffset);
-
+  // 将缓冲区对象分配给a_Position变量
+  gl.vertexAttribPointer(
+    a_Position,
+    3,
+    gl.FLOAT,
+    false,
+    gltfObj.bufferViews[positionBufferViewId].byteStride,
+    gltfObj.accessors[positionAccessorId].byteOffset
+  );
   // 连接a_Position变量与分配给它的缓冲区对象
   gl.enableVertexAttribArray(a_Position);
 
-  //获取顶点数据纹理信息  
+  // 获取顶点法线信息
+  var normalAccessId = gltfObj.meshes[0].primitives[0].attributes.NORMAL;
+  if (gltfObj.accessors[normalAccessId].componentType != 5126) {
+    return 0;
+  }
+  var normalBufferViewId = gltfObj.accessors[normalAccessId].bufferView;
+  var normals = new Float32Array(
+    binBuf,
+    gltfObj.bufferViews[normalBufferViewId].byteOffset,
+    gltfObj.bufferViews[normalBufferViewId].byteLength / Float32Array.BYTES_PER_ELEMENT
+  );
+  // 创建缓冲区对象
+  var normalBuffer = gl.createBuffer();
+  if (!normalBuffer) {
+    console.log('Failed to create the buffer object');
+    return -1;
+  }
+  // 将缓冲区对象绑定到目标
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+  // 向缓冲区对象写入数据
+  gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+  //获取着色器中attribute变量a_Normal的地址
+  var a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
+  if (a_Normal < 0) {
+    console.log('Failed to get the storage location of a_Normal');
+    return -1;
+  }
+  // 将缓冲区对象分配给a_Normal变量
+  gl.vertexAttribPointer(
+    a_Normal,
+    3,
+    gl.FLOAT,
+    false,
+    gltfObj.bufferViews[normalBufferViewId].byteStride,
+    gltfObj.accessors[normalAccessId].byteOffset
+  );
+  // 连接a_Normal变量与分配给它的缓冲区对象
+  gl.enableVertexAttribArray(a_Normal);
+
+  // 获取顶点数据纹理信息
   var txtCoordAccessorId = gltfObj.meshes[0].primitives[0].attributes.TEXCOORD_0;
   if (gltfObj.accessors[txtCoordAccessorId].componentType != 5126) {
     return 0;
   }
   var txtCoordBufferViewId = gltfObj.accessors[txtCoordAccessorId].bufferView;
-
-  //获取着色器中attribute变量a_TxtCoord的地址 
+  //获取着色器中attribute变量a_TxtCoord的地址
   var a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
   if (a_TexCoord < 0) {
     console.log('Failed to get the storage location of a_TexCoord');
     return -1;
   }
   // 将缓冲区对象分配给a_Color变量
-  gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, gltfObj.bufferViews[txtCoordBufferViewId].byteStride, gltfObj.accessors[txtCoordAccessorId].byteOffset);
+  gl.vertexAttribPointer(
+    a_TexCoord,
+    2,
+    gl.FLOAT,
+    false,
+    gltfObj.bufferViews[txtCoordBufferViewId].byteStride,
+    gltfObj.accessors[txtCoordAccessorId].byteOffset
+  );
   // 连接a_Color变量与分配给它的缓冲区对象
   gl.enableVertexAttribArray(a_TexCoord);
 
   //获取顶点数据索引信息
   var indicesAccessorId = gltfObj.meshes[0].primitives[0].indices;
   var indicesBufferViewId = gltfObj.accessors[indicesAccessorId].bufferView;
-  var indices = new Uint16Array(binBuf, gltfObj.bufferViews[indicesBufferViewId].byteOffset, gltfObj.bufferViews[indicesBufferViewId].byteLength / Uint16Array.BYTES_PER_ELEMENT);
-
+  var indices = new Uint16Array(
+    binBuf,
+    gltfObj.bufferViews[indicesBufferViewId].byteOffset,
+    gltfObj.bufferViews[indicesBufferViewId].byteLength / Uint16Array.BYTES_PER_ELEMENT
+  );
   // 将顶点索引写入到缓冲区对象
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
   return indices.length;
 }
-
 
 //以下是加载进度代码
 // var MTLNUMBER = 5;
@@ -398,13 +475,12 @@ function initVertexBuffers(gl, gltfObj, binBuf) {
 var numTime = 0;
 
 var processing = setInterval(function () {
-
   // for (ii = 0; ii < 22; ii++) {
   //   if (!!objArray[ii]) objOK++;
   // }
 
   numTime += Math.random() * 5;
-  var percentage = (numTime).toFixed(2);
+  var percentage = numTime.toFixed(2);
   getById('percentage').innerHTML = '加载中...' + percentage + '%';
 
   if (numTime >= 100) {

@@ -12,19 +12,34 @@
     <script src="./color.js"></script>
     <link type="text/css" rel="stylesheet" href="./style.css" />
     <script id="vs" type="x-shader/x-vertex">
-      attribute vec3 position;
-      attribute vec3 normal;
-      attribute vec4 color;
-      uniform   mat4 mMatrix;
-      uniform   mat4 mvpMatrix;
-      varying   vec3 vPosition;
-      varying   vec3 vNormal;
-      varying   vec4 vColor;
+      precision mediump float;
+
+      attribute vec3  position;
+      attribute vec3  normal;
+      attribute vec4  color;
+      uniform   mat4  mMatrix;
+      uniform   mat4  mvpMatrix;
+      uniform   vec3  eyePosition;
+      varying   vec3  vPosition;
+      varying   vec3  vNormal;
+      varying   vec4  vColor;
+      varying   float fogFactor;
+
+      const float near = 0.1;
+      const float far  = 30.0;
+      const float linerDepth = 1.0 / (far - near);
+      const float fogStart = 0.02;
+      const float fogEnd = 0.8;
 
       void main(void){
       	vPosition   = (mMatrix * vec4(position, 1.0)).xyz;
       	vNormal     = normalize((mMatrix * vec4(normal, 0.0)).xyz);
       	vColor      = color;
+
+        vec3 pos = (mMatrix * vec4(position, 1.0)).xyz;
+        float linerPos = length(eyePosition - pos) * linerDepth;
+        fogFactor = clamp((fogEnd - linerPos) / (fogEnd - fogStart), 0.0, 1.0);
+
       	gl_Position = mvpMatrix * vec4(position, 1.0);
       }
     </script>
@@ -40,6 +55,8 @@
       uniform samplerCube cubeTexture;
       uniform bool        reflection;
       uniform float       eta;
+      uniform bool        isFog;
+      varying float       fogFactor;
       varying vec3        vPosition;
       varying vec3        vNormal;
       varying vec4        vColor;
@@ -58,10 +75,13 @@
         float specular = pow(clamp(dot(vNormal, halfLe), 0.0, 1.0), 200.0);
         vec4 envColor  = textureCube(cubeTexture, ref);
         vec4 destColor = vColor * envColor;
-        if (lightOff) {
+        if(lightOff) {
           destColor = vColor * envColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0) + vec4(normalize(ambient), 1.0) * 0.1;
         }
-        gl_FragColor   = destColor;
+        if(isFog){
+          destColor = mix(destColor, vec4(vec3(0.8), 1), fogFactor);
+        }
+        gl_FragColor = destColor;
       }
     </script>
   </head>
@@ -101,11 +121,11 @@
         </div>
         <div class="tit">
           其他设置
-          <button class="btnForm" onClick="changeStre()">
-            <span id="spanStre">描边开</span>
-          </button>
           <button class="btnForm" onClick="changeLight()">
             <span id="spanLight">开灯</span>
+          </button>
+          <button class="btnForm" onClick="changeFog()">
+            <span id="spanFog">雾</span>
           </button>
         </div>
       </div>

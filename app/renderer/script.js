@@ -73,12 +73,12 @@ onload = function () {
   uniLocation[3] = gl.getUniformLocation(prg, 'cubeTexture');
   uniLocation[4] = gl.getUniformLocation(prg, 'reflection');
   uniLocation[5] = gl.getUniformLocation(prg, 'eta');
-
   uniLocation[6] = gl.getUniformLocation(prg, 'invMatrix');
   uniLocation[7] = gl.getUniformLocation(prg, 'lightDirection');
   uniLocation[8] = gl.getUniformLocation(prg, 'lightOff');
   uniLocation[9] = gl.getUniformLocation(prg, 'ambient');
-  
+  uniLocation[10] = gl.getUniformLocation(prg, 'isFog');
+
   var m = new matIV();
   var mMatrix = m.identity(m.create());
   var vMatrix = m.identity(m.create());
@@ -114,7 +114,7 @@ onload = function () {
 
   var eyePosition = [0.0, 0.0, 20.0];
 
-  var lightDirection = [-0.5, 0.5, 0.5];
+  var lightDirection = [0.0, -0.5, 0.0];
 
   var countZ = 0;
   var countG = 0;
@@ -122,6 +122,7 @@ onload = function () {
   var rad2 = (((countZ + 180) % 360) * Math.PI) / 180;
 
   (function () {
+    // 旋转
     let isZ = document.getElementById('spanFormZ').innerHTML;
     let isG = document.getElementById('spanFormG').innerHTML;
     if (isZ === '自转开') {
@@ -132,19 +133,23 @@ onload = function () {
       rad = ((countG % 360) * Math.PI) / 180;
       countG++;
     }
+    // 灯光
     let isLightON = document.getElementById('spanLight').innerHTML;
     var isLight = true;
     isLightON === '开灯' ? (isLight = false) : (isLight = true);
     var refractiveIndex = eta.value / 100;
-
     let ambient = toRgb(document.getElementById('ambient').value);
+    // 雾
+    let isFog = document.getElementById('spanFog').innerHTML;
+    var isFogON = true;
+    isFog === '晴朗' ? (isFogON = false) : (isFogON = true);
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     var camUp = new Array();
-    q.toVecIII([0.0, 0.0, 20.0], qt, eyePosition);
+    q.toVecIII([0.0, 0.0, 15.0], qt, eyePosition);
     q.toVecIII([0.0, 1.0, 0.0], qt, camUp);
     m.lookAt(eyePosition, [0, 0, 0], camUp, vMatrix);
     m.perspective(45, c.width / c.height, 0.1, 200, pMatrix);
@@ -163,7 +168,7 @@ onload = function () {
     gl.uniform1i(uniLocation[3], 0);
     gl.uniform1i(uniLocation[4], false);
     gl.uniform1i(uniLocation[8], false);
-    gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
     gl.drawElements(gl.TRIANGLES, cubeData.i.length, gl.UNSIGNED_SHORT, 0);
 
     set_attribute(sVBOList, attLocation, attStride);
@@ -181,6 +186,7 @@ onload = function () {
     gl.uniform3fv(uniLocation[7], lightDirection);
     gl.uniform1i(uniLocation[8], isLight);
     gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
     gl.drawElements(gl.TRIANGLES, sphereData.i.length, gl.UNSIGNED_SHORT, 0);
 
     set_attribute(tVBOList, attLocation, attStride);
@@ -199,9 +205,82 @@ onload = function () {
     gl.uniform3fv(uniLocation[7], lightDirection);
     gl.uniform1i(uniLocation[8], isLight);
     gl.uniform3fv(uniLocation[9], ambient);
-    console.log(ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
     gl.drawElements(gl.TRIANGLES, torusData.i.length, gl.UNSIGNED_SHORT, 0);
 
+    set_attribute(sVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, -30.0], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
+    m.inverse(mMatrix, invMatrix);
+    gl.uniformMatrix4fv(uniLocation[6], false, invMatrix);
+    gl.uniform3fv(uniLocation[7], lightDirection);
+    gl.uniform1i(uniLocation[8], isLight);
+    gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
+    gl.drawElements(gl.TRIANGLES, sphereData.i.length, gl.UNSIGNED_SHORT, 0);
+
+    set_attribute(tVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, -30.0], mMatrix);
+    m.rotate(mMatrix, rad2, [1, 0, 1], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
+    m.inverse(mMatrix, invMatrix);
+    gl.uniformMatrix4fv(uniLocation[6], false, invMatrix);
+    gl.uniform3fv(uniLocation[7], lightDirection);
+    gl.uniform1i(uniLocation[8], isLight);
+    gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
+    gl.drawElements(gl.TRIANGLES, torusData.i.length, gl.UNSIGNED_SHORT, 0);
+
+    set_attribute(sVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, -60.0], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
+    m.inverse(mMatrix, invMatrix);
+    gl.uniformMatrix4fv(uniLocation[6], false, invMatrix);
+    gl.uniform3fv(uniLocation[7], lightDirection);
+    gl.uniform1i(uniLocation[8], isLight);
+    gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
+    gl.drawElements(gl.TRIANGLES, sphereData.i.length, gl.UNSIGNED_SHORT, 0);
+
+    set_attribute(tVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, -60.0], mMatrix);
+    m.rotate(mMatrix, rad2, [1, 0, 1], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
+    m.inverse(mMatrix, invMatrix);
+    gl.uniformMatrix4fv(uniLocation[6], false, invMatrix);
+    gl.uniform3fv(uniLocation[7], lightDirection);
+    gl.uniform1i(uniLocation[8], isLight);
+    gl.uniform3fv(uniLocation[9], ambient);
+    gl.uniform1i(uniLocation[10], isFogON);
+    gl.drawElements(gl.TRIANGLES, torusData.i.length, gl.UNSIGNED_SHORT, 0);
     gl.flush();
 
     setTimeout(arguments.callee, 1000 / 30);

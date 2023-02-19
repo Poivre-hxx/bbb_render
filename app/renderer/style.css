@@ -2,16 +2,13 @@
   padding: 1vh 2vw;
 }
 #canvas {
-  width: 80%;
+  width: 95vw;
+  height: 85vh;
   background-color: #000;
   border-radius: 10px;
   margin-left: 2vw;
   margin-right: 2vw;
   margin-top: 0.5vh;
-}
-
-#control {
-  width: 15%;
 }
 
 /* 玩家模式按钮 */

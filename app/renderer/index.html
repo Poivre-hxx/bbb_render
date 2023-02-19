@@ -22,19 +22,20 @@
       </p>
     </div>
 
-    <div style="display: flex; width: 96vw; height: 90vh">
-      <canvas id="canvas"> Please use a browser that supports WebGL. </canvas>
-      <div id="control">
-        <button class="btnLight" onClick="changeLight()">
-          <span id="spanLight">开灯</span>
-        </button>
-        <button class="btnForm" onClick="changeForm()">
-          <span id="spanForm">上帝视角</span>
-        </button>
-      </div>
-    </div>
+    <canvas id="canvas"> Please use a browser that supports WebGL. </canvas>
 
+    <div style="display: flex; justify-content: flex-end">
+      <button class="btnLight" onClick="changeLight()">
+        <span id="spanLight">开灯</span>
+      </button>
+      <button class="btnForm" onClick="changeForm()">
+        <span id="spanForm">上帝视角</span>
+      </button>
+    </div>
+    <!-- 控制交互 -->
     <script src="./buttonClick.js"></script>
+
+    <!-- 轮子 -->
     <script src="./lib/webgl-utils.js"></script>
     <script src="./lib/webgl-debug.js"></script>
     <script src="./lib/cuon-utils.js"></script>

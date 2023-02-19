@@ -1,7 +1,7 @@
 // 顶点着色器程序a_Position
 var VSHADER_SOURCE =
   'attribute vec4 a_Position;\n' +
-  'attribute vec3 a_normal' +
+  'attribute vec3 a_Normal' +
   'attribute vec2 a_TexCoord;\n' +
   'uniform mat4 u_MvpMatrix;\n' +
   'uniform mat4 invMatrix;\n' +
@@ -10,7 +10,7 @@ var VSHADER_SOURCE =
   'varying float diffuse;\n' +
   'void main() {\n' +
   '  vec3 invLight = normalize((invMatrix * lightDirection * vec4(0.0, 0.0, 1.0, 0.0)).xyz);\n' +
-  '  float diffuse = clamp(dot(a_normal.xyz, invLight), 0.1,);\n' +
+  '  float diffuse = clamp(dot(a_Normal.xyz, invLight), 0.1,);\n' +
   '  gl_Position = u_MvpMatrix * a_Position;\n' + // 设置顶点坐标
   '  v_TexCoord = a_TexCoord;\n' + //纹理坐标
   '}\n';

@@ -5,10 +5,53 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>bbb render</title>
-
+    <script src="./lib/minMatrixb.js"></script>
+    <script src="./buttonClick.js"></script>
+    <script src="./script.js"></script>
+    <script src="./loading.js"></script>
     <link type="text/css" rel="stylesheet" href="./style.css" />
+    <script id="vs" type="x-shader/x-vertex">
+      attribute vec3 position;
+      attribute vec3 normal;
+      attribute vec4 color;
+      uniform   mat4 mMatrix;
+      uniform   mat4 mvpMatrix;
+      varying   vec3 vPosition;
+      varying   vec3 vNormal;
+      varying   vec4 vColor;
+
+      void main(void){
+      	vPosition   = (mMatrix * vec4(position, 1.0)).xyz;
+      	vNormal     = (mMatrix * vec4(normal, 0.0)).xyz;
+      	vColor      = color;
+      	gl_Position = mvpMatrix * vec4(position, 1.0);
+      }
+    </script>
+
+    <script id="fs" type="x-shader/x-fragment">
+      precision mediump float;
+
+      uniform vec3        eyePosition;
+      uniform samplerCube cubeTexture;
+      uniform bool        reflection;
+      varying vec3        vPosition;
+      varying vec3        vNormal;
+      varying vec4        vColor;
+
+      void main(void){
+      	vec3 ref;
+      	if(reflection){
+      		ref = reflect(vPosition - eyePosition, vNormal);
+      	}else{
+      		ref = vNormal;
+      	}
+      	vec4 envColor  = textureCube(cubeTexture, ref);
+      	vec4 destColor = vColor * envColor;
+      	gl_FragColor   = destColor;
+      }
+    </script>
   </head>
-  <body onload="main()">
+  <body>
     <div><input type="file" id="demFile" multiple="multiple" /></div>
     <div
       id="processing"
@@ -21,7 +64,6 @@
         加载中
       </p>
     </div>
-
     <div style="display: flex; width: 96vw; height: 90vh">
       <canvas id="canvas"> Please use a browser that supports WebGL. </canvas>
       <div id="control">
@@ -33,12 +75,5 @@
         </button>
       </div>
     </div>
-
-    <script src="./buttonClick.js"></script>
-    <script src="./lib/webgl-utils.js"></script>
-    <script src="./lib/webgl-debug.js"></script>
-    <script src="./lib/cuon-utils.js"></script>
-    <script src="./lib/cuon-matrix.js"></script>
-    <script src="./script.js"></script>
   </body>
 </html>

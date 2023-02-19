@@ -1,494 +1,278 @@
-// 顶点着色器程序a_Position
-var VSHADER_SOURCE =
-  'attribute vec4 a_Position;\n' +
-  'attribute vec3 a_normal' +
-  'attribute vec2 a_TexCoord;\n' +
-  'uniform mat4 u_MvpMatrix;\n' +
-  'uniform mat4 invMatrix;\n' +
-  'uniform mat3 lightDirection;\n' +
-  'varying vec2 v_TexCoord;\n' +
-  'varying float diffuse;\n' +
-  'void main() {\n' +
-  '  vec3 invLight = normalize((invMatrix * lightDirection * vec4(0.0, 0.0, 1.0, 0.0)).xyz);\n' +
-  '  float diffuse = clamp(dot(a_normal.xyz, invLight), 0.1,);\n' +
-  '  gl_Position = u_MvpMatrix * a_Position;\n' + // 设置顶点坐标
-  '  v_TexCoord = a_TexCoord;\n' + //纹理坐标
-  '}\n';
+var c;
+var q = new qtnIV();
+var qt = q.identity(q.create());
 
-// 片元着色器程序
-var FSHADER_SOURCE =
-  'precision mediump float;\n' +
-  'uniform sampler2D u_Sampler;\n' +
-  'varying vec2 v_TexCoord;\n' +
-  'varying float diffuse;\n' +
-  'void main() {\n' +
-  '  gl_FragColor = texture2D(u_Sampler, v_TexCoord) * vec4(vec3(diffuse), 1.0);\n' +
-  '}\n';
-
-//定义一个矩形体：混合构造函数原型模式
-function Cuboid(minX, maxX, minY, maxY, minZ, maxZ) {
-  this.minX = minX;
-  this.maxX = maxX;
-  this.minY = minY;
-  this.maxY = maxY;
-  this.minZ = minZ;
-  this.maxZ = maxZ;
+function mouseMove(e) {
+  var cw = c.width;
+  var ch = c.height;
+  var wh = 1 / Math.sqrt(cw * cw + ch * ch);
+  var x = e.clientX - c.offsetLeft - cw * 0.5;
+  var y = e.clientY - c.offsetTop - ch * 0.5;
+  var sq = Math.sqrt(x * x + y * y);
+  var r = sq * 2.0 * Math.PI * wh;
+  if (sq != 1) {
+    sq = 1 / sq;
+    x *= sq;
+    y *= sq;
+  }
+  q.rotate(r, [y, x, 0.0], qt);
 }
 
-Cuboid.prototype = {
-  constructor: Cuboid,
-  CenterX: function () {
-    return (this.minX + this.maxX) / 2.0;
-  },
-  CenterY: function () {
-    return (this.minY + this.maxY) / 2.0;
-  },
-  CenterZ: function () {
-    return (this.minZ + this.maxZ) / 2.0;
-  },
-  LengthX: function () {
-    return this.maxX - this.minX;
-  },
-  LengthY: function () {
-    return this.maxY - this.minY;
-  },
-};
+onload = function () {
+  c = document.getElementById('canvas');
+  c.width = 500;
+  c.height = 500;
+  c.addEventListener('mousemove', mouseMove, true);
+  var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
 
-var currentAngle = [0.0, 0.0]; // 绕X轴Y轴的旋转角度 ([x-axis, y-axis])
-var curScale = 1.0; //当前的缩放比例
+  var v_shader = create_shader('vs');
+  var f_shader = create_shader('fs');
+  var prg = create_program(v_shader, f_shader);
 
-//获取文件路径的后缀，为小写
-function getFileSuffix(filePath) {
-  var index = filePath.lastIndexOf('.');
-  var suffix = filePath.substr(index + 1);
-  return suffix.toLowerCase();
-}
+  var attLocation = new Array();
+  attLocation[0] = gl.getAttribLocation(prg, 'position');
+  attLocation[1] = gl.getAttribLocation(prg, 'normal');
+  attLocation[2] = gl.getAttribLocation(prg, 'color');
 
-function main() {
-  var demFile = document.getElementById('demFile');
-  if (!demFile) {
-    console.log('Failed to get demFile element!');
-    return;
-  }
+  var attStride = new Array();
+  attStride[0] = 3;
+  attStride[1] = 3;
+  attStride[2] = 4;
 
-  //加载文件后的事件
-  demFile.addEventListener('change', function (event) {
-    //判断浏览器是否支持FileReader接口
-    if (typeof FileReader == 'undefined') {
-      console.log('你的浏览器不支持FileReader接口！');
-      return;
-    }
+  var cubeData = cube(2.0, [1.0, 1.0, 1.0, 1.0]);
+  var cPosition = create_vbo(cubeData.p);
+  var cNormal = create_vbo(cubeData.n);
+  var cColor = create_vbo(cubeData.c);
+  var cVBOList = [cPosition, cNormal, cColor];
+  var cIndex = create_ibo(cubeData.i);
 
-    //读取文件后的事件
-    var reader = new FileReader();
-    reader.onload = function () {
-      if (reader.result) {
-        var gltfObj = JSON.parse(reader.result);
+  var sphereData = sphere(64, 64, 2.5, [1.0, 1.0, 1.0, 1.0]);
+  var sPosition = create_vbo(sphereData.p);
+  var sNormal = create_vbo(sphereData.n);
+  var sColor = create_vbo(sphereData.c);
+  var sVBOList = [sPosition, sNormal, sColor];
+  var sIndex = create_ibo(sphereData.i);
 
-        for (var fi = 0; fi < input.files.length; fi++) {
-          //读取bin文件
-          if (gltfObj.buffers[0].uri === input.files[fi].name) {
-            var binReader = new FileReader();
-            binReader.onload = function () {
-              if (binReader.result) {
-                for (var fi = 0; fi < input.files.length; fi++) {
-                  if (gltfObj.images[0].uri === input.files[fi].name) {
-                    //读取纹理图像
-                    var imgReader = new FileReader();
+  var torusData = torus(64, 64, 1.0, 2.0, [1.0, 1.0, 1.0, 1.0]);
+  var tPosition = create_vbo(torusData.p);
+  var tNormal = create_vbo(torusData.n);
+  var tColor = create_vbo(torusData.c);
+  var tVBOList = [tPosition, tNormal, tColor];
+  var tIndex = create_ibo(torusData.i);
 
-                    imgReader.onload = function () {
-                      //创建一个image对象
-                      var image = new Image();
-                      if (!image) {
-                        console.log('Failed to create the image object');
-                        return false;
-                      }
+  var uniLocation = new Array();
+  uniLocation[0] = gl.getUniformLocation(prg, 'mMatrix');
+  uniLocation[1] = gl.getUniformLocation(prg, 'mvpMatrix');
+  uniLocation[2] = gl.getUniformLocation(prg, 'eyePosition');
+  uniLocation[3] = gl.getUniformLocation(prg, 'cubeTexture');
+  uniLocation[4] = gl.getUniformLocation(prg, 'reflection');
 
-                      //图像加载的响应函数
-                      image.onload = function () {
-                        //绘制函数
-                        onDraw(gl, canvas, gltfObj, binReader.result, image);
-                      };
+  var m = new matIV();
+  var mMatrix = m.identity(m.create());
+  var vMatrix = m.identity(m.create());
+  var pMatrix = m.identity(m.create());
+  var tmpMatrix = m.identity(m.create());
+  var mvpMatrix = m.identity(m.create());
 
-                      //浏览器开始加载图像
-                      image.src = imgReader.result;
-                    };
-
-                    imgReader.readAsDataURL(input.files[fi]); //按照base64格式读取
-                    break;
-                  }
-                }
-              }
-            };
-            binReader.readAsArrayBuffer(input.files[fi]); //按照ArrayBuffer格式读取
-            break;
-          }
-        }
-      }
-    };
-
-    var input = event.target;
-
-    var flag = false;
-    for (var fi = 0; fi < input.files.length; fi++) {
-      if (getFileSuffix(input.files[fi].name) === 'gltf') {
-        flag = true;
-        reader.readAsText(input.files[fi]); //按照字符串格式读取
-        break;
-      }
-    }
-
-    if (!flag) {
-      alert('没有找到gltf');
-    }
-  });
-
-  // 获取 <canvas> 元素
-  var canvas = document.getElementById('canvas');
-
-  // 获取WebGL渲染上下文
-  var gl = getWebGLContext(canvas);
-  if (!gl) {
-    console.log('Failed to get the rendering context for WebGL');
-    return;
-  }
-
-  // 初始化着色器
-  if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
-    console.log('Failed to intialize shaders.');
-    return;
-  }
-
-  // 指定清空<canvas>的颜色
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-  // 开启深度测试
   gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
 
-  //清空颜色和深度缓冲区
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-}
+  var cubeTexture = null;
 
-//绘制函数
-function onDraw(gl, canvas, gltfObj, binBuf, image) {
-  // 设置顶点位置
-  var n = initVertexBuffers(gl, gltfObj, binBuf);
-  if (n < 0) {
-    console.log('Failed to set the positions of the vertices');
-    return;
-  }
+  var cubeSourse = new Array(
+    './assets/cubemap/cube_PX.png',
+    './assets/cubemap/cube_PY.png',
+    './assets/cubemap/cube_PZ.png',
+    './assets/cubemap/cube_NX.png',
+    './assets/cubemap/cube_NY.png',
+    './assets/cubemap/cube_NZ.png'
+  );
 
-  //设置纹理
-  if (!loadTexture(gl, image)) {
-    console.log('Failed to set the Texture!');
-  }
+  var cubeTarget = new Array(
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+  );
 
-  //注册鼠标事件
-  initEventHandlers(canvas);
+  create_cube_texture(cubeSourse, cubeTarget);
 
-  //绘制函数
-  var tick = function () {
-    //设置MVP矩阵
-    setMVPMatrix(gl, canvas, gltfObj.cuboid);
+  var eyePosition = [0.0, 0.0, 20.0];
 
-    var lightDirection = [-0.5, 0.5, 0.5];
+  var count = 0;
 
-    //清空颜色和深度缓冲区
+  (function () {
+    count++;
+
+    var rad = ((count % 360) * Math.PI) / 180;
+    var rad2 = (((count + 180) % 360) * Math.PI) / 180;
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    //绘制矩形体
-    gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_SHORT, 0);
+    var camUp = new Array();
+    q.toVecIII([0.0, 0.0, 20.0], qt, eyePosition);
+    q.toVecIII([0.0, 1.0, 0.0], qt, camUp);
+    m.lookAt(eyePosition, [0, 0, 0], camUp, vMatrix);
+    m.perspective(45, c.width / c.height, 0.1, 200, pMatrix);
+    m.multiply(pMatrix, vMatrix, tmpMatrix);
 
-    //请求浏览器调用tick
-    requestAnimationFrame(tick);
-  };
+    set_attribute(cVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cIndex);
+    m.identity(mMatrix);
+    m.scale(mMatrix, [100.0, 100.0, 100.0], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform3fv(uniLocation[2], eyePosition);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeTexture);
+    gl.uniform1i(uniLocation[3], 0);
+    gl.uniform1i(uniLocation[4], false);
+    gl.drawElements(gl.TRIANGLES, cubeData.i.length, gl.UNSIGNED_SHORT, 0);
 
-  //开始绘制
-  tick();
-}
+    set_attribute(sVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, 0.0], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.drawElements(gl.TRIANGLES, sphereData.i.length, gl.UNSIGNED_SHORT, 0);
 
-function loadTexture(gl, image) {
-  // 创建纹理对象
-  var texture = gl.createTexture();
-  if (!texture) {
-    console.log('Failed to create the texture object');
-    return false;
-  }
+    set_attribute(tVBOList, attLocation, attStride);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tIndex);
+    m.identity(mMatrix);
+    m.rotate(mMatrix, rad2, [0, 0, 1], mMatrix);
+    m.translate(mMatrix, [5.0, 0.0, 0.0], mMatrix);
+    m.rotate(mMatrix, rad, [1, 0, 1], mMatrix);
+    m.multiply(tmpMatrix, mMatrix, mvpMatrix);
+    gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
+    gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
+    gl.uniform1i(uniLocation[4], true);
+    gl.drawElements(gl.TRIANGLES, torusData.i.length, gl.UNSIGNED_SHORT, 0);
 
-  // 开启0号纹理单元
-  gl.activeTexture(gl.TEXTURE0);
-  // 绑定纹理对象
-  gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.flush();
 
-  // 设置纹理参数
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    setTimeout(arguments.callee, 1000 / 30);
+  })();
 
-  // 配置纹理图像
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
-
-  // 将0号单元纹理传递给着色器中的取样器变量
-  var u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
-  if (!u_Sampler) {
-    console.log('Failed to get the storage location of u_Sampler');
-    return false;
-  }
-  gl.uniform1i(u_Sampler, 0);
-
-  return true;
-}
-
-//注册鼠标事件
-function initEventHandlers(canvas) {
-  var dragging = false; // Dragging or not
-  var lastX = -1,
-    lastY = -1; // Last position of the mouse
-
-  //鼠标按下
-  canvas.onmousedown = function (ev) {
-    var x = ev.clientX;
-    var y = ev.clientY;
-    // Start dragging if a moue is in <canvas>
-    var rect = ev.target.getBoundingClientRect();
-    if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {
-      lastX = x;
-      lastY = y;
-      dragging = true;
+  function create_shader(id) {
+    var shader;
+    var scriptElement = document.getElementById(id);
+    if (!scriptElement) {
+      return;
     }
-  };
-
-  //鼠标离开时
-  canvas.onmouseleave = function (ev) {
-    dragging = false;
-  };
-
-  //鼠标释放
-  canvas.onmouseup = function (ev) {
-    dragging = false;
-  };
-
-  //鼠标移动
-  canvas.onmousemove = function (ev) {
-    var x = ev.clientX;
-    var y = ev.clientY;
-    if (dragging) {
-      var factor = 100 / canvas.height; // The rotation ratio
-      var dx = factor * (x - lastX);
-      var dy = factor * (y - lastY);
-      currentAngle[0] = currentAngle[0] + dy;
-      currentAngle[1] = currentAngle[1] + dx;
+    switch (scriptElement.type) {
+      case 'x-shader/x-vertex':
+        shader = gl.createShader(gl.VERTEX_SHADER);
+        break;
+      case 'x-shader/x-fragment':
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+        break;
+      default:
+        return;
     }
-    (lastX = x), (lastY = y);
-  };
-
-  //鼠标缩放
-  canvas.onmousewheel = function (event) {
-    if (event.wheelDelta > 0) {
-      curScale = curScale * 1.1;
+    gl.shaderSource(shader, scriptElement.text);
+    gl.compileShader(shader);
+    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      return shader;
     } else {
-      curScale = curScale * 0.9;
+      alert(gl.getShaderInfoLog(shader));
     }
-  };
-}
-
-//设置MVP矩阵
-function setMVPMatrix(gl, canvas, cuboid) {
-  // var u_MvpMatrix = gl.getUniformLocation(gl.program, 'u_MvpMatrix');
-  // if (!u_MvpMatrix) {
-  //   console.log('Failed to get the storage location of u_MvpMatrix');
-  //   return;
-  // }
-  var attLocation = new Array();
-  attLocation[0] = gl.getAttribLocation(gl.program, 'a_position');
-  attLocation[1] = gl.getAttribLocation(gl.program, 'a_normal');
-  attLocation[2] = gl.getAttribLocation(gl.program, 'a_color');
-
-  //模型矩阵
-  var modelMatrix = new Matrix4();
-  modelMatrix.scale(curScale, curScale, curScale);
-  modelMatrix.rotate(currentAngle[0], 1.0, 0.0, 0.0); // Rotation around x-axis
-  modelMatrix.rotate(currentAngle[1], 0.0, 1.0, 0.0); // Rotation around y-axis
-  modelMatrix.translate(-cuboid.CenterX(), -cuboid.CenterY(), -cuboid.CenterZ());
-
-  //投影矩阵
-  var fovy = 60;
-  var near = 1;
-  var projMatrix = new Matrix4();
-  projMatrix.setPerspective(fovy, canvas.width / canvas.height, 1, 10000);
-
-  // 计算lookAt()函数初始视点的高度
-  var angle = ((fovy / 2) * Math.PI) / 180.0;
-  var eyeHight = (cuboid.LengthY() * 1.2) / 2.0 / angle;
-
-  // 视图矩阵
-  var viewMatrix = new Matrix4(); // View matrix
-  viewMatrix.lookAt(0, 0, eyeHight, 0, 0, 0, 0, 1, 0);
-
-  // MVP矩阵
-  var mvpMatrix = new Matrix4();
-  mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
-  // invMatrix矩阵
-  var invMatrix = new Matrix4();
-  invMatrix.setInverseOf(modelMatrix);
-
-  // 将MVP矩阵传输到着色器的uniform变量u_MvpMatrix
-  // gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
-  var uniLocation = new Array();
-  uniLocation[0] = gl.getUniformLocation(gl.program, 'mvpMatrix');
-  uniLocation[1] = gl.getUniformLocation(gl.program, 'invMatrix');
-  uniLocation[2] = gl.getUniformLocation(gl.program, 'lightDirection');
-}
-
-function initVertexBuffers(gl, gltfObj, binBuf) {
-  // 获取顶点数据位置信息
-  var positionAccessorId = gltfObj.meshes[0].primitives[0].attributes.POSITION;
-  if (gltfObj.accessors[positionAccessorId].componentType != 5126) {
-    return 0;
   }
-  var positionBufferViewId = gltfObj.accessors[positionAccessorId].bufferView;
-  var verticesColors = new Float32Array(
-    binBuf,
-    gltfObj.bufferViews[positionBufferViewId].byteOffset,
-    gltfObj.bufferViews[positionBufferViewId].byteLength / Float32Array.BYTES_PER_ELEMENT
-  );
-  gltfObj.cuboid = new Cuboid(
-    gltfObj.accessors[positionAccessorId].min[0],
-    gltfObj.accessors[positionAccessorId].max[0],
-    gltfObj.accessors[positionAccessorId].min[1],
-    gltfObj.accessors[positionAccessorId].max[1],
-    gltfObj.accessors[positionAccessorId].min[2],
-    gltfObj.accessors[positionAccessorId].max[2]
-  );
-  // 创建缓冲区对象
-  var vertexColorBuffer = gl.createBuffer();
-  var indexBuffer = gl.createBuffer();
-  if (!vertexColorBuffer || !indexBuffer) {
-    console.log('Failed to create the buffer object');
-    return -1;
+
+  function create_program(vs, fs) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      gl.useProgram(program);
+      return program;
+    } else {
+      alert(gl.getProgramInfoLog(program));
+    }
   }
-  // 将缓冲区对象绑定到目标
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-  // 向缓冲区对象写入数据
-  gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
-  //获取着色器中attribute变量a_Position的地址
-  var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-  if (a_Position < 0) {
-    console.log('Failed to get the storage location of a_Position');
-    return -1;
+
+  function create_vbo(data) {
+    var vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    return vbo;
   }
-  // 将缓冲区对象分配给a_Position变量
-  gl.vertexAttribPointer(
-    a_Position,
-    3,
-    gl.FLOAT,
-    false,
-    gltfObj.bufferViews[positionBufferViewId].byteStride,
-    gltfObj.accessors[positionAccessorId].byteOffset
-  );
-  // 连接a_Position变量与分配给它的缓冲区对象
-  gl.enableVertexAttribArray(a_Position);
 
-  // 获取顶点法线信息
-  var normalAccessId = gltfObj.meshes[0].primitives[0].attributes.NORMAL;
-  if (gltfObj.accessors[normalAccessId].componentType != 5126) {
-    return 0;
+  function set_attribute(vbo, attL, attS) {
+    for (var i in vbo) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo[i]);
+      gl.enableVertexAttribArray(attL[i]);
+      gl.vertexAttribPointer(attL[i], attS[i], gl.FLOAT, false, 0, 0);
+    }
   }
-  var normalBufferViewId = gltfObj.accessors[normalAccessId].bufferView;
-  var normals = new Float32Array(
-    binBuf,
-    gltfObj.bufferViews[normalBufferViewId].byteOffset,
-    gltfObj.bufferViews[normalBufferViewId].byteLength / Float32Array.BYTES_PER_ELEMENT
-  );
-  // 创建缓冲区对象
-  var normalBuffer = gl.createBuffer();
-  if (!normalBuffer) {
-    console.log('Failed to create the buffer object');
-    return -1;
+
+  function create_ibo(data) {
+    var ibo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    return ibo;
   }
-  // 将缓冲区对象绑定到目标
-  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-  // 向缓冲区对象写入数据
-  gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-  //获取着色器中attribute变量a_Normal的地址
-  var a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
-  if (a_Normal < 0) {
-    console.log('Failed to get the storage location of a_Normal');
-    return -1;
+
+  function create_cube_texture(source, target) {
+    var cImg = new Array();
+
+    for (var i = 0; i < source.length; i++) {
+      cImg[i] = new cubeMapImage();
+      cImg[i].data.src = source[i];
+    }
+
+    function cubeMapImage() {
+      this.data = new Image();
+
+      this.data.onload = function () {
+        this.imageDataLoaded = true;
+
+        checkLoaded();
+      };
+    }
+
+    function checkLoaded() {
+      if (
+        cImg[0].data.imageDataLoaded &&
+        cImg[1].data.imageDataLoaded &&
+        cImg[2].data.imageDataLoaded &&
+        cImg[3].data.imageDataLoaded &&
+        cImg[4].data.imageDataLoaded &&
+        cImg[5].data.imageDataLoaded
+      ) {
+        generateCubeMap();
+      }
+    }
+
+    function generateCubeMap() {
+      var tex = gl.createTexture();
+
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, tex);
+
+      for (var j = 0; j < source.length; j++) {
+        gl.texImage2D(target[j], 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cImg[j].data);
+      }
+
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+      cubeTexture = tex;
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+    }
   }
-  // 将缓冲区对象分配给a_Normal变量
-  gl.vertexAttribPointer(
-    a_Normal,
-    3,
-    gl.FLOAT,
-    false,
-    gltfObj.bufferViews[normalBufferViewId].byteStride,
-    gltfObj.accessors[normalAccessId].byteOffset
-  );
-  // 连接a_Normal变量与分配给它的缓冲区对象
-  gl.enableVertexAttribArray(a_Normal);
-
-  // 获取顶点数据纹理信息
-  var txtCoordAccessorId = gltfObj.meshes[0].primitives[0].attributes.TEXCOORD_0;
-  if (gltfObj.accessors[txtCoordAccessorId].componentType != 5126) {
-    return 0;
-  }
-  var txtCoordBufferViewId = gltfObj.accessors[txtCoordAccessorId].bufferView;
-  //获取着色器中attribute变量a_TxtCoord的地址
-  var a_TexCoord = gl.getAttribLocation(gl.program, 'a_TexCoord');
-  if (a_TexCoord < 0) {
-    console.log('Failed to get the storage location of a_TexCoord');
-    return -1;
-  }
-  // 将缓冲区对象分配给a_Color变量
-  gl.vertexAttribPointer(
-    a_TexCoord,
-    2,
-    gl.FLOAT,
-    false,
-    gltfObj.bufferViews[txtCoordBufferViewId].byteStride,
-    gltfObj.accessors[txtCoordAccessorId].byteOffset
-  );
-  // 连接a_Color变量与分配给它的缓冲区对象
-  gl.enableVertexAttribArray(a_TexCoord);
-
-  //获取顶点数据索引信息
-  var indicesAccessorId = gltfObj.meshes[0].primitives[0].indices;
-  var indicesBufferViewId = gltfObj.accessors[indicesAccessorId].bufferView;
-  var indices = new Uint16Array(
-    binBuf,
-    gltfObj.bufferViews[indicesBufferViewId].byteOffset,
-    gltfObj.bufferViews[indicesBufferViewId].byteLength / Uint16Array.BYTES_PER_ELEMENT
-  );
-  // 将顶点索引写入到缓冲区对象
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-
-  return indices.length;
-}
-
-//以下是加载进度代码
-// var MTLNUMBER = 5;
-// var OBJNUMBER = 17;
-
-var numTime = 0;
-
-var processing = setInterval(function () {
-  // for (ii = 0; ii < 22; ii++) {
-  //   if (!!objArray[ii]) objOK++;
-  // }
-
-  numTime += Math.random() * 5;
-  var percentage = numTime.toFixed(2);
-  getById('percentage').innerHTML = '加载中...' + percentage + '%';
-
-  if (numTime >= 100) {
-    getById('processing').style.display = 'none';
-    clearInterval(processing);
-  }
-}, 10);
-
-function getById(value) {
-  return document.getElementById(value);
-}
+};

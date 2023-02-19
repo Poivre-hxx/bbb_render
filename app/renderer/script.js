@@ -16,7 +16,7 @@ function mouseMove(e) {
     y *= sq;
   }
   // 监听到鼠标左键按下时
-  if (e.buttons == 1) {
+  if (e.buttons === 1) {
     q.rotate(r, [y, x, 0.0], qt);
   }
 }
@@ -26,7 +26,10 @@ onload = function () {
   c.width = 800;
   c.height = 600;
   c.addEventListener('mousemove', mouseMove, true);
+
   var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+
+  var eta = document.getElementById('eta');
 
   var v_shader = create_shader('vs');
   var f_shader = create_shader('fs');
@@ -49,14 +52,14 @@ onload = function () {
   var cVBOList = [cPosition, cNormal, cColor];
   var cIndex = create_ibo(cubeData.i);
 
-  var sphereData = sphere(64, 64, 2.5, [1.0, 1.0, 1.0, 1.0]);
+  var sphereData = sphere(64, 64, 2.0, [1.0, 1.0, 1.0, 1.0]);
   var sPosition = create_vbo(sphereData.p);
   var sNormal = create_vbo(sphereData.n);
   var sColor = create_vbo(sphereData.c);
   var sVBOList = [sPosition, sNormal, sColor];
   var sIndex = create_ibo(sphereData.i);
 
-  var torusData = torus(64, 64, 1.0, 2.0, [1.0, 1.0, 1.0, 1.0]);
+  var torusData = torus(64, 64, 0.5, 3.0, [1.0, 1.0, 1.0, 1.0]);
   var tPosition = create_vbo(torusData.p);
   var tNormal = create_vbo(torusData.n);
   var tColor = create_vbo(torusData.c);
@@ -69,6 +72,7 @@ onload = function () {
   uniLocation[2] = gl.getUniformLocation(prg, 'eyePosition');
   uniLocation[3] = gl.getUniformLocation(prg, 'cubeTexture');
   uniLocation[4] = gl.getUniformLocation(prg, 'reflection');
+  uniLocation[5] = gl.getUniformLocation(prg, 'eta');
 
   var m = new matIV();
   var mMatrix = m.identity(m.create());
@@ -109,17 +113,19 @@ onload = function () {
   var rad = ((countG % 360) * Math.PI) / 180;
   var rad2 = (((countZ + 180) % 360) * Math.PI) / 180;
 
+
   (function () {
     let isZ = document.getElementById('spanFormZ').innerHTML;
     let isG = document.getElementById('spanFormG').innerHTML;
-    if (isZ == '自转开') {
+    if (isZ === '自转开') {
       rad2 = (((countZ + 180) % 360) * Math.PI) / 180;
       countZ++;
     }
-    if (isG == '公转开') {
+    if (isG === '公转开') {
       rad = ((countG % 360) * Math.PI) / 180;
       countG++;
     }
+    var refractiveIndex = eta.value / 100;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
@@ -155,6 +161,7 @@ onload = function () {
     gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
     gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
     gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
     gl.drawElements(gl.TRIANGLES, sphereData.i.length, gl.UNSIGNED_SHORT, 0);
 
     set_attribute(tVBOList, attLocation, attStride);
@@ -167,6 +174,7 @@ onload = function () {
     gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
     gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);
     gl.uniform1i(uniLocation[4], true);
+    gl.uniform1f(uniLocation[5], refractiveIndex);
     gl.drawElements(gl.TRIANGLES, torusData.i.length, gl.UNSIGNED_SHORT, 0);
 
     gl.flush();

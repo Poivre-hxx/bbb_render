@@ -26,3 +26,12 @@ function changeFormG() {
     spanForm.innerHTML = '公转开';
   }
 }
+function changeStre() {
+  let spanStre = document.getElementById('spanStre');
+  let Str = spanStre.innerHTML;
+  if (Str === '描边开') {
+    spanStre.innerHTML = '描边关';
+  } else {
+    spanStre.innerHTML = '描边开';
+  }
+}

@@ -22,7 +22,7 @@
 
       void main(void){
       	vPosition   = (mMatrix * vec4(position, 1.0)).xyz;
-      	vNormal     = (mMatrix * vec4(normal, 0.0)).xyz;
+      	vNormal     = normalize((mMatrix * vec4(normal, 0.0)).xyz);
       	vColor      = color;
       	gl_Position = mvpMatrix * vec4(position, 1.0);
       }
@@ -34,25 +34,26 @@
       uniform vec3        eyePosition;
       uniform samplerCube cubeTexture;
       uniform bool        reflection;
+      uniform float       eta;
       varying vec3        vPosition;
       varying vec3        vNormal;
       varying vec4        vColor;
 
       void main(void){
-      	vec3 ref;
-      	if(reflection){
-      		ref = reflect(vPosition - eyePosition, vNormal);
-      	}else{
-      		ref = vNormal;
-      	}
-      	vec4 envColor  = textureCube(cubeTexture, ref);
-      	vec4 destColor = vColor * envColor;
-      	gl_FragColor   = destColor;
+        vec3 ref;
+        if(reflection){
+          ref = refract(normalize(vPosition - eyePosition), vNormal, eta);
+        } else {
+          ref = vNormal;
+        }
+        vec4 envColor  = textureCube(cubeTexture, ref);
+        vec4 destColor = vColor * envColor;
+        gl_FragColor   = destColor;
       }
     </script>
   </head>
   <body>
-    <div><input type="file" id="demFile" multiple="multiple" /></div>
+    <!-- <div><input type="file" id="demFile" multiple="multiple" /></div> -->
     <div
       id="processing"
       style="width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); position: fixed; display: flex"
@@ -64,18 +65,32 @@
         加载中
       </p>
     </div>
-    <div style="display: flex; width: 96vw; height: 90vh">
+    <div style="display: flex; width: 96vw; height: 90vh; padding-top: 4vh">
       <canvas id="canvas"> Please use a browser that supports WebGL. </canvas>
       <div id="control">
-        <button class="btnLight" onClick="changeLight()">
-          <span id="spanLight">开灯</span>
-        </button>
-        <button class="btnFormZ" onClick="changeFormZ()">
-          <span id="spanFormZ">自转开</span>
-        </button>
-        <button class="btnFormG" onClick="changeFormG()">
-          <span id="spanFormG">公转开</span>
-        </button>
+        <div class="tit">
+          转动设置
+          <button class="btnForm" onClick="changeFormZ()">
+            <span id="spanFormZ">自转开</span>
+          </button>
+          <button class="btnForm" onClick="changeFormG()">
+            <span id="spanFormG">公转开</span>
+          </button>
+        </div>
+
+        <div class="tit">
+          折射率
+          <input id="eta" type="range" value="60" max="100" min="0" style="margin-left: 15px" />
+        </div>
+        <div class="tit">
+          其他设置
+          <button class="btnForm" onClick="changeLight()">
+            <span id="spanLight">开灯</span>
+          </button>
+          <button class="btnForm" onClick="changeStre()">
+            <span id="spanStre">描边开</span>
+          </button>
+        </div>
       </div>
     </div>
   </body>

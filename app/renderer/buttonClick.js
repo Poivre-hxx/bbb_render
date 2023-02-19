@@ -8,12 +8,21 @@ function changeLight() {
     spanLight.innerHTML = '开灯';
   }
 }
-function changeForm() {
-  let spanForm = document.getElementById('spanForm');
+function changeFormZ() {
+  let spanForm = document.getElementById('spanFormZ');
   let Str = spanForm.innerHTML;
-  if (Str === '上帝视角') {
-    spanForm.innerHTML = '玩家视角';
+  if (Str === '自转开') {
+    spanForm.innerHTML = '自转关';
   } else {
-    spanForm.innerHTML = '上帝视角';
+    spanForm.innerHTML = '自转开';
+  }
+}
+function changeFormG() {
+  let spanForm = document.getElementById('spanFormG');
+  let Str = spanForm.innerHTML;
+  if (Str === '公转开') {
+    spanForm.innerHTML = '公转关';
+  } else {
+    spanForm.innerHTML = '公转开';
   }
 }

@@ -15,13 +15,16 @@ function mouseMove(e) {
     x *= sq;
     y *= sq;
   }
-  q.rotate(r, [y, x, 0.0], qt);
+  // 监听到鼠标左键按下时
+  if (e.buttons == 1) {
+    q.rotate(r, [y, x, 0.0], qt);
+  }
 }
 
 onload = function () {
   c = document.getElementById('canvas');
-  c.width = 500;
-  c.height = 500;
+  c.width = 800;
+  c.height = 600;
   c.addEventListener('mousemove', mouseMove, true);
   var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
 
@@ -101,13 +104,22 @@ onload = function () {
 
   var eyePosition = [0.0, 0.0, 20.0];
 
-  var count = 0;
+  var countZ = 0;
+  var countG = 0;
+  var rad = ((countG % 360) * Math.PI) / 180;
+  var rad2 = (((countZ + 180) % 360) * Math.PI) / 180;
 
   (function () {
-    count++;
-
-    var rad = ((count % 360) * Math.PI) / 180;
-    var rad2 = (((count + 180) % 360) * Math.PI) / 180;
+    let isZ = document.getElementById('spanFormZ').innerHTML;
+    let isG = document.getElementById('spanFormG').innerHTML;
+    if (isZ == '自转开') {
+      rad2 = (((countZ + 180) % 360) * Math.PI) / 180;
+      countZ++;
+    }
+    if (isG == '公转开') {
+      rad = ((countG % 360) * Math.PI) / 180;
+      countG++;
+    }
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
@@ -148,9 +160,9 @@ onload = function () {
     set_attribute(tVBOList, attLocation, attStride);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, tIndex);
     m.identity(mMatrix);
-    m.rotate(mMatrix, rad2, [0, 0, 1], mMatrix);
+    m.rotate(mMatrix, rad, [0, 0, 1], mMatrix);
     m.translate(mMatrix, [5.0, 0.0, 0.0], mMatrix);
-    m.rotate(mMatrix, rad, [1, 0, 1], mMatrix);
+    m.rotate(mMatrix, rad2, [1, 0, 1], mMatrix);
     m.multiply(tmpMatrix, mMatrix, mvpMatrix);
     gl.uniformMatrix4fv(uniLocation[0], false, mMatrix);
     gl.uniformMatrix4fv(uniLocation[1], false, mvpMatrix);

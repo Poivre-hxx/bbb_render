@@ -9,6 +9,7 @@
     <script src="./buttonClick.js"></script>
     <script src="./script.js"></script>
     <script src="./loading.js"></script>
+    <script src="./color.js"></script>
     <link type="text/css" rel="stylesheet" href="./style.css" />
     <script id="vs" type="x-shader/x-vertex">
       attribute vec3 position;
@@ -31,6 +32,10 @@
     <script id="fs" type="x-shader/x-fragment">
       precision mediump float;
 
+      uniform mat4        invMatrix;
+      uniform vec3        lightDirection;
+      uniform bool        lightOff;
+      uniform vec3        ambient;
       uniform vec3        eyePosition;
       uniform samplerCube cubeTexture;
       uniform bool        reflection;
@@ -46,8 +51,16 @@
         } else {
           ref = vNormal;
         }
+        vec3 invLight = normalize(invMatrix * vec4(lightDirection, 0.0)).xyz;
+        vec3 invEye = normalize(invMatrix * vec4(eyePosition, 0.0)).xyz;
+        vec3 halfLe = normalize(invLight + invEye);
+        float diffuse = clamp(dot(vNormal, invLight), 0.0, 1.0);
+        float specular = pow(clamp(dot(vNormal, halfLe), 0.0, 1.0), 200.0);
         vec4 envColor  = textureCube(cubeTexture, ref);
         vec4 destColor = vColor * envColor;
+        if (lightOff) {
+          destColor = vColor * envColor * vec4(vec3(diffuse), 1.0) + vec4(vec3(specular), 1.0) + vec4(normalize(ambient), 1.0) * 0.1;
+        }
         gl_FragColor   = destColor;
       }
     </script>
@@ -83,12 +96,16 @@
           <input id="eta" type="range" value="60" max="100" min="0" style="margin-left: 15px" />
         </div>
         <div class="tit">
+          环境光
+          <div><input type="color" id="ambient" name="ambient" value="#e66465" style="margin-left: 15px" /></div>
+        </div>
+        <div class="tit">
           其他设置
-          <button class="btnForm" onClick="changeLight()">
-            <span id="spanLight">开灯</span>
-          </button>
           <button class="btnForm" onClick="changeStre()">
             <span id="spanStre">描边开</span>
+          </button>
+          <button class="btnForm" onClick="changeLight()">
+            <span id="spanLight">开灯</span>
           </button>
         </div>
       </div>
